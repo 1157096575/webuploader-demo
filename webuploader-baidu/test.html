@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <link rel="stylesheet" type="text/css" href="webuploader/webuploader.css" />
+        <script type="text/javascript" src="./webuploader/jquery-1.9.1.min.js"></script>
+        <script type="text/javascript" src="./webuploader/webuploader.js"></script>
+    </head>
+    <body>
+        <div id="uploader" class="wu-example">
+        <!--用来存放文件信息-->
+            <div id="thelist" class="uploader-list"></div>
+            <div class="btns">
+                <div id="picker">选择文件</div>
+                <button id="upBtn" class="btn btn-default">开始上传</button>
+            </div>
+        </div>
+        <script type="text/javascript">
+            $(function(){
+                // 检测是否已经安装flash，检测flash的版本
+                var $wrap = $('#uploader'),
+                    flashVersion = ( function() {
+                        var version;
+
+                        try {
+                            version = navigator.plugins[ 'Shockwave Flash' ];
+                            version = version.description;
+                        } catch ( ex ) {
+                            try {
+                                version = new ActiveXObject('ShockwaveFlash.ShockwaveFlash')
+                                        .GetVariable('$version');
+                            } catch ( ex2 ) {
+                                version = '0.0';
+                            }
+                        }
+                        version = version.match( /\d+/g );
+                        return parseFloat( version[ 0 ] + '.' + version[ 1 ], 10 );
+                    } )(),
+
+                    supportTransition = (function(){
+                        var s = document.createElement('p').style,
+                            r = 'transition' in s ||
+                                    'WebkitTransition' in s ||
+                                    'MozTransition' in s ||
+                                    'msTransition' in s ||
+                                    'OTransition' in s;
+                            s = null;
+                        return r;
+                    })();
+                console.log(WebUploader.browser.ie);
+                if ( !WebUploader.Uploader.support('flash') && WebUploader.browser.ie ) {
+
+                    // flash 安装了但是版本过低。
+
+                    console.log(flashVersion);
+                    if (flashVersion) {
+                        (function(container) {
+                            window['expressinstallcallback'] = function( state ) {
+                                switch(state) {
+                                    case 'Download.Cancelled':
+                                        alert('您取消了更新！')
+                                        break;
+
+                                    case 'Download.Failed':
+                                        alert('安装失败')
+                                        break;
+
+                                    default:
+                                        alert('安装已成功，请刷新！');
+                                        break;
+                                }
+                                delete window['expressinstallcallback'];
+                            };
+
+                            var swf = './expressInstall.swf';
+                            // insert flash object
+                            var html = '<object type="application/' +
+                                    'x-shockwave-flash" data="' +  swf + '" ';
+
+                            if (WebUploader.browser.ie) {
+                                html += 'classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" ';
+                            }
+
+                            html += 'width="100%" height="100%" style="outline:0">'  +
+                                    '<param name="movie" value="' + swf + '" />' +
+                                    '<param name="wmode" value="transparent" />' +
+                                    '<param name="allowscriptaccess" value="always" />' +
+                                    '</object>';
+
+                            container.html(html);
+
+                        })($wrap);
+
+                        // 压根就没有安转。
+                    } else {
+                        $wrap.html('<a href="http://www.adobe.com/go/getflashplayer" target="_blank" border="0"><img alt="get flash player" src="http://www.adobe.com/macromedia/style_guide/images/160x41_Get_Flash_Player.jpg" /></a>');
+                    }
+
+                    return;
+                } else if (!WebUploader.Uploader.support()) {
+                    alert( 'Web Uploader 不支持您的浏览器！');
+                    return;
+                };
+                var uploader = WebUploader.create({
+
+                    // swf文件路径
+                    swf: 'webuploader/Uploader.swf',
+                    // 文件接收服务端。
+                    server: 'http://webuploader.duapp.com/server/fileupload.php',
+                    // 选择文件的按钮。可选。
+                    // 内部根据当前运行是创建，可能是input元素，也可能是flash.
+                    //crop: true,
+                    pick: '#picker',
+                    //compress: false,//不启用压缩
+                    //resize: false,//尺寸不改变
+                    //duplicate: true,
+                    accept:{
+                        extensions: 'gif,jpg,jpeg,bmp,png',
+                        mimeTypes: 'image/*'
+                    },
+
+                    // 不压缩image, 默认如果是jpeg，文件上传前会压缩一把再上传！
+                    resize: false
+                });
+                uploader.on( 'fileQueued', function( file , res) {
+                    //alert(file)
+                    console.log(file);
+                    console.log(res);
+                    console.log( uploader.getFiles() )
+                    uploader.makeThumb( file, function( error, src ) {
+                        //alert(src)
+                        console.log(file, src)
+                    });
+                });
+                uploader.on( 'uploadProgress', function( file, percentage ) {
+                    console.log(file, percentage)
+                    console.log('uploadProgress')                   
+                });
+                uploader.on( 'uploadSuccess', function( file, response ) {
+                    console.log(file, response)
+                    console.log('uploadSuccess')
+                });
+
+                uploader.on( 'uploadError', function( file ) {
+                    console.log(file)
+                    console.log('uploadError')
+                });
+
+                uploader.on( 'uploadComplete', function( file ) {
+                    console.log(file)
+                    console.log('uploadComplete');
+                    uploader.reset()
+                });
+                document.getElementById('upBtn').onclick = function() {
+                    uploader.upload();
+                    console.log( uploader.getFiles() )
+                }
+            })
+        </script>
+    </body>
+</html>
